@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحتي — السبورة التفاعلية</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--ink:#191919;--muted:#6b6b6b;--line:#e1e1e1;--purple:#202020;--pink:#ff6f91;--paper:#fff;--bg:#fafafa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Tahoma,"Segoe UI",Arial,sans-serif;color:var(--ink)}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px clamp(14px,4vw,40px);background:#fff;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:43px;height:43px;border-radius:14px;background:linear-gradient(135deg,#786cff,#b2a9ff);display:grid;place-items:center;color:#fff;font-size:24px;box-shadow:0 7px 18px #6657e833}
+h1{font-size:20px;margin:0;letter-spacing:-.4px}.subtitle{font-size:12px;color:var(--muted);margin-top:4px}.pill{font-size:12px;padding:8px 11px;border-radius:99px;background:#f0efff;color:#5749d5;font-weight:700}.header-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}.clock-pill{font-size:12px;padding:8px 11px;border-radius:12px;background:#f7f8fc;border:1px solid var(--line);color:var(--ink);font-weight:700;white-space:nowrap}.clock-pill small{display:block;font-size:10px;color:var(--muted);font-weight:400;margin-top:3px}
+main{max-width:1500px;margin:auto;padding:clamp(12px,3vw,28px);display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}
+.board-wrap{min-width:0}.board-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.board-top h2{font-size:16px;margin:0}.hint{font-size:12px;color:var(--muted)}
+.whiteboard{position:relative;background:#fff;border:1px solid #e9ebf2;border-radius:20px;height:min(63vh,720px);min-height:390px;overflow:hidden;box-shadow:0 12px 35px #27345b0b;touch-action:none}
+#drawing{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.board-message{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;text-align:center;padding:24px;background:#ffffffdd;z-index:2}
+.board-message .spark{font-size:40px;margin-bottom:10px}.board-message strong{font-size:clamp(20px,3vw,29px)}.board-message span{font-size:14px;color:var(--muted);margin-top:8px}
+.name-card{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(82%,440px);padding:25px 20px;text-align:center;border-radius:23px;background:linear-gradient(135deg,#f0efff,#fff4f7);border:1px solid #e5ddff;box-shadow:0 18px 50px #6657e81f;z-index:3;pointer-events:none}
+.name-card small{color:#7167d9;font-size:11px;letter-spacing:1px;font-weight:800}.name-card h3{font-size:clamp(28px,5vw,48px);margin:12px 0 4px;overflow-wrap:anywhere}.name-card p{margin:0;color:var(--muted);font-size:13px}
+.toolbar{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.btn{border:0;border-radius:11px;padding:11px 13px;font-weight:700;font-size:12px;cursor:pointer;transition:transform .15s,filter .15s;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit}.btn:hover{filter:brightness(.98);transform:translateY(-1px)}.primary{background:var(--purple);color:white;box-shadow:0 7px 16px #6657e82c}.celebrate{background:#fff0f4;color:#d8436a;border:1px solid #ffd5df}.soft{background:#fff;border:1px solid var(--line);color:var(--ink)}.active{background:#e9e7ff!important;color:#4d40ce!important;border-color:#c9c3ff!important}
+.panel{background:#fff;border:1px solid var(--line);border-radius:17px;padding:16px;box-shadow:0 7px 24px #27345b06}.panel h3{font-size:14px;margin:0 0 7px}.panel p{font-size:12px;line-height:1.7;color:var(--muted);margin:0 0 12px}aside{display:flex;flex-direction:column;gap:12px}
+.upload{border:1.5px dashed #c9c8f6;background:#fafaff;border-radius:13px;padding:13px;text-align:center}.upload .fileicon{font-size:24px}.upload strong{display:block;font-size:13px;margin:7px 0 4px}.upload span{font-size:11px;color:var(--muted);display:block}.upload input{display:none}.upload label{display:inline-flex;margin-top:10px;cursor:pointer}
+.status{font-size:12px;margin-top:9px;color:#4f46b9;overflow-wrap:anywhere}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.stat{background:#f7f8fc;padding:10px;border-radius:11px}.stat b{display:block;font-size:21px}.stat span{font-size:11px;color:var(--muted)}
+.names{max-height:100px;overflow:auto;display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}.chip{font-size:11px;padding:6px 8px;border-radius:8px;background:#f2f3f9;color:#4c5367}
+input[type=text],select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:12px;margin-bottom:8px;outline-color:var(--purple);background:#fff}
+.tools-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.tool-label{display:block;font-size:11px;color:var(--muted);margin:6px 0}.color-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.color-row input{width:34px;height:30px;padding:2px;border:1px solid var(--line);border-radius:7px;background:white}.width-row{display:flex;gap:8px;align-items:center}.width-row input{width:100%;accent-color:var(--purple)}.tiny{font-size:11px;color:var(--muted);line-height:1.6;margin-top:9px}
+.zoom-controls{display:flex;gap:6px;align-items:center;margin-right:auto}.zoom-controls .btn{padding:8px 11px}.zoom-level{font-size:11px;color:var(--muted);min-width:42px;text-align:center}
+.confetti{position:fixed;top:-20px;width:10px;height:15px;z-index:20;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translate3d(var(--drift),110vh,0) rotate(850deg);opacity:.95}}
+
+.drawing-panel{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin:0 0 10px;padding:10px 13px;border-radius:14px}
+.drawing-panel h3{margin:0;white-space:nowrap}
+.drawing-panel p{display:none}
+.drawing-panel .tools-grid{display:flex;gap:6px}
+.drawing-panel .btn{padding:9px 11px;white-space:nowrap}
+.drawing-panel .tool-label{margin:0;white-space:nowrap}
+.drawing-panel .color-row{gap:5px}
+.drawing-panel .color-row .btn{padding:8px 9px}
+.drawing-panel .color-row input{margin:0}
+.drawing-panel .width-row{width:110px}
+.drawing-panel .tiny{display:none}
+@media(max-width:560px){.drawing-panel{gap:8px;padding:9px}.drawing-panel h3{width:100%}.drawing-panel .color-row{flex:1}.drawing-panel .color-row .btn{padding:7px}.drawing-panel .width-row{width:90px}}
+
+@media(max-width:900px){main{grid-template-columns:1fr}.whiteboard{height:53vh;min-height:350px}aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}aside .panel:first-child{grid-column:1/-1}}
+@media(max-width:560px){header{align-items:flex-start}.header-tools{align-items:flex-end;flex-direction:column}.pill{display:none}.clock-pill{font-size:11px;padding:7px 9px}aside{display:flex}.whiteboard{height:50vh;min-height:340px}.board-top{align-items:flex-start;flex-direction:column}.toolbar .btn{flex:1}.zoom-controls{margin-right:0}.board-message span{font-size:12px}}
+
+.saved-classes{display:flex;flex-direction:column;gap:7px;margin-top:8px}.saved-class{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}.saved-class:hover{border-color:#b8b0ff;background:#faf9ff;transform:translateY(-1px)}.saved-class:focus-visible{outline:2px solid var(--purple);outline-offset:2px}.saved-class .saved-name{flex:1;min-width:0;font-size:12px;font-weight:700;overflow-wrap:anywhere}.saved-class .btn{padding:7px 9px;font-size:11px;cursor:pointer}.saved-class.active-class{border-color:#8e83ff;background:#f5f3ff}
+
+/* Reference-inspired collaborative whiteboard theme */
+body{background-color:#fafafa;background-image:radial-gradient(#c9c9c9 1.15px,transparent 1.15px);background-size:25px 25px;color:#171717}
+header{margin:14px clamp(12px,2vw,32px) 0;border:1px solid #e6e6e6;border-radius:20px;box-shadow:0 3px 8px #0000000d;background:#ffffffed}
+.logo{border-radius:12px;background:linear-gradient(135deg,#ff5d7d,#8d5bff,#28b6a5);box-shadow:none}
+.pill{background:#f3f3f3;color:#242424}
+.clock-pill{background:#fff;border-radius:14px;box-shadow:0 2px 6px #00000008}
+main{gap:20px}
+.whiteboard{background:#fff;border:1px solid #dedede;border-radius:18px;box-shadow:0 4px 16px #00000008}
+.panel{border-color:#dedede;border-radius:17px;box-shadow:0 3px 8px #00000009;background:#fff}
+.drawing-panel{box-shadow:0 3px 8px #00000008}
+.btn{border-radius:10px;transition:filter .15s,background .15s}
+.primary{background:#222;color:#fff;box-shadow:none}
+.celebrate{background:#fff0f4;color:#d8436a;border-color:#ffd5df}
+.soft{background:#fff;border-color:#dedede;color:#222}
+.active{background:#e9e9e9!important;color:#171717!important;border-color:#bdbdbd!important}
+.upload{background:#fafafa;border-color:#c9c9c9}
+.stat{background:#f5f5f5}
+.chip{background:#f1f1f1;color:#333}
+.saved-class.active-class{border-color:#555;background:#f5f5f5}
+.saved-class:hover{border-color:#aaa;background:#fafafa}
+.board-message{background:#ffffffd9}
+.name-card{background:linear-gradient(135deg,#ffe0eb,#fff7cf);border-color:#f0d5de}
+#drawing{touch-action:none}
+@media(max-width:560px){header{margin:8px 8px 0;border-radius:15px}}
+
+
+/* FULL APP REDESIGN — collaborative canvas workspace */
+:root{--ink:#191919;--muted:#777;--line:#e5e5e5;--paper:#fff;--bg:#f8f8f8;--purple:#202020;--pink:#ff6f91}
+*{box-sizing:border-box}
+html,body{min-height:100%;}
+body{background-color:#fafafa;background-image:radial-gradient(#d1d1d1 1px,transparent 1px);background-size:25px 25px;color:#191919;font-family:Inter,"Segoe UI",Tahoma,Arial,sans-serif;overflow-x:hidden}
+header{position:sticky;top:10px;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:10px 20px 0;padding:10px 18px;background:#fffffff2;border:1px solid #e7e7e7;border-radius:20px;box-shadow:0 3px 9px #0000000c;backdrop-filter:blur(12px)}
+.brand{gap:12px}.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#ff526f 0 25%,#ffc640 25% 50%,#37b7a0 50% 75%,#a86bff 75%);color:#171717;font-size:23px;box-shadow:none}h1{font-size:19px;font-weight:800;letter-spacing:-.5px}.subtitle{font-size:11px;color:#777}.header-tools{flex-direction:row;align-items:center;gap:8px}.pill,.clock-pill{background:#fff;border:1px solid #ededed;color:#242424;border-radius:13px;box-shadow:0 2px 6px #00000008;padding:8px 12px}.pill{font-weight:700}.clock-pill{font-variant-numeric:tabular-nums}
+main{width:100%;max-width:none;min-height:calc(100vh - 75px);margin:0;padding:16px 20px 24px;display:grid;grid-template-columns:minmax(265px,330px) minmax(0,1fr);gap:18px;direction:rtl;align-items:start}
+.board-wrap{min-width:0;position:relative;display:flex;flex-direction:column;gap:10px}.board-top{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 0;margin:0}.board-top h2{font-size:16px;font-weight:800}.hint{font-size:11px;color:#777}
+.whiteboard{height:calc(100vh - 245px);min-height:420px;max-height:850px;position:relative;overflow:hidden;border:1px solid #dedede;border-radius:20px;background:#fff;box-shadow:0 3px 12px #00000008;touch-action:none}
+#drawing{position:absolute;inset:0;width:100%;height:100%;touch-action:none}.board-message{background:#ffffffc9;backdrop-filter:blur(1px)}.board-message .spark{font-size:45px}.board-message strong{font-size:clamp(22px,3vw,34px);font-weight:850}.board-message span{max-width:420px;font-size:13px;line-height:1.8}
+.name-card{background:linear-gradient(135deg,#ffe2eb,#fff4bb);border:1px solid #f1d4dd;border-radius:24px;box-shadow:0 12px 35px #00000012}.name-card small{color:#c23b65}.name-card h3{font-weight:850}
+.drawing-panel{order:0;display:flex;align-items:center;gap:9px 12px;flex-wrap:wrap;padding:10px 12px;margin:0;background:#ffffffed;border:1px solid #e5e5e5;border-radius:17px;box-shadow:0 3px 10px #00000008;backdrop-filter:blur(10px)}.drawing-panel h3{font-size:12px;margin:0;white-space:nowrap}.drawing-panel p,.drawing-panel .tiny{display:none}.drawing-panel .tools-grid{display:flex;gap:5px}.drawing-panel .btn{padding:8px 10px;font-size:11px;white-space:nowrap}.drawing-panel .tool-label{font-size:10px;margin:0;white-space:nowrap}.drawing-panel .color-row{gap:5px;flex-wrap:nowrap}.drawing-panel .color-row input{width:29px;height:28px;margin:0}.drawing-panel .color-row .btn{padding:7px 8px}.drawing-panel .width-row{width:76px}.drawing-panel .width-row input{margin:0;accent-color:#222}
+.toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0;padding:10px;background:#ffffffed;border:1px solid #e5e5e5;border-radius:16px;box-shadow:0 3px 10px #00000008}.btn{font-family:inherit;border-radius:10px;padding:10px 12px;font-size:11px;font-weight:750;transition:transform .15s,background .15s;box-shadow:none}.btn:hover{transform:translateY(-1px)}.primary{background:#202020;color:#fff}.celebrate{background:#fff0f4;color:#c83f65;border:1px solid #ffd5df}.soft{background:#fff;border:1px solid #e2e2e2;color:#222}.active{background:#ececec!important;color:#151515!important;border-color:#bcbcbc!important}.zoom-controls{gap:4px}.zoom-controls .btn{padding:8px 10px}.zoom-level{min-width:40px}
+aside{display:flex;flex-direction:column;gap:12px;min-width:0;padding-top:2px}.panel{background:#fff;border:1px solid #dedede;border-radius:17px;padding:15px;box-shadow:0 3px 9px #00000008}.panel h3{font-size:14px;font-weight:800;margin:0 0 8px}.panel p{font-size:11px;line-height:1.8;color:#777;margin:0 0 11px}.upload{border:1.5px dashed #d1d1d1;background:#fafafa;border-radius:13px;padding:12px}.upload .fileicon{font-size:22px}.upload strong{font-size:12px}.upload span{font-size:10px}.upload label{margin-top:9px}.status{font-size:11px;line-height:1.7;color:#555}.stats{gap:7px}.stat{background:#f6f6f6;border:1px solid #f0f0f0;border-radius:11px;padding:10px}.stat b{font-size:22px}.stat span{font-size:10px}.names{max-height:90px}.chip{background:#f2f2f2;color:#333;border-radius:8px;font-size:10px}.saved-class{border-radius:10px;border-color:#e7e7e7}.saved-class.active-class{border-color:#777;background:#f6f6f6}.saved-class .saved-name{font-size:11px}.saved-class .btn{font-size:10px;padding:6px 8px}input[type=text],select{border-color:#e1e1e1;border-radius:10px;font-size:12px}input:focus,select:focus{outline:2px solid #222;outline-offset:1px}
+footer{padding:0 20px 14px;text-align:center;font-size:10px;color:#888}
+@media(min-width:1200px){aside{position:sticky;top:92px;max-height:calc(100vh - 110px);overflow:auto;padding-bottom:8px;scrollbar-width:thin}.whiteboard{height:calc(100vh - 260px)}}
+@media(max-width:900px){header{margin:8px 10px 0;top:6px}main{grid-template-columns:1fr;padding:12px 10px;gap:14px}.board-wrap{grid-row:1}.whiteboard{height:55vh;min-height:350px}.drawing-panel{order:0}aside{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));position:static;max-height:none;overflow:visible}aside .panel:first-child{grid-column:1/-1}}
+@media(max-width:560px){header{align-items:center;padding:9px 11px}.brand{gap:8px}.logo{width:36px;height:36px}.subtitle{font-size:9px}.header-tools{gap:5px}.pill{display:none}.clock-pill{font-size:10px;padding:6px 8px}.clock-pill small{font-size:8px}main{padding:10px 8px}.board-top{align-items:flex-start;flex-direction:column;gap:4px}.hint{line-height:1.5}.whiteboard{height:48vh;min-height:310px;border-radius:15px}.drawing-panel{gap:8px;padding:9px}.drawing-panel h3{width:100%}.drawing-panel .color-row{flex-wrap:wrap}.drawing-panel .tool-label{font-size:10px}.drawing-panel .width-row{width:75px}.toolbar{gap:6px;padding:8px}.toolbar .btn{flex:1;padding:9px 7px;font-size:10px}.zoom-controls{width:100%;justify-content:center;margin:2px 0 0}.zoom-controls .btn{flex:0}.board-message span{font-size:11px}aside{display:flex}.panel{padding:13px}.stats{margin-top:10px}}
+
+
+
+/* CLASSROOM MODE: full-screen canvas with teacher-only controls in a drawer */
+html,body{width:100%;height:100%;min-height:100%;overflow:hidden}
+body{background:#fafafa;background-image:radial-gradient(#d1d1d1 1px,transparent 1px);background-size:25px 25px}
+header{position:fixed;top:12px;right:16px;left:16px;margin:0;z-index:30;width:auto;min-height:60px;pointer-events:auto}
+main{display:block;width:100%;height:100%;min-height:0;margin:0;padding:0;max-width:none}
+.board-wrap{display:contents}
+.board-top{display:none}
+.whiteboard{position:fixed;inset:0;width:100vw;height:100vh;min-height:0;max-height:none;border:0;border-radius:0;box-shadow:none;z-index:1;background:#fff}
+#drawing{position:absolute;inset:0;width:100%;height:100%}
+.drawing-panel{position:fixed;z-index:20;top:94px;left:18px;width:min(390px,calc(100vw - 36px));max-height:calc(100vh - 180px);overflow:auto;box-shadow:0 5px 18px #00000012}
+.toolbar{position:fixed;z-index:20;bottom:18px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 24px);justify-content:center;box-shadow:0 5px 20px #00000014;backdrop-filter:blur(12px)}
+.toolbar .btn{white-space:nowrap}
+.settings-toggle{min-height:38px;white-space:nowrap}
+.settings-backdrop{display:none;position:fixed;inset:0;background:#0005;z-index:39;backdrop-filter:blur(2px)}
+aside#settingsDrawer{display:flex;position:fixed;z-index:40;top:0;right:0;width:min(390px,92vw);height:100dvh;max-height:100dvh;overflow:auto;padding:18px;background:#f8f8f8;box-shadow:-12px 0 40px #0000001a;transform:translateX(105%);transition:transform .24s ease;gap:12px;direction:rtl;overscroll-behavior:contain}
+.drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:-18px;z-index:2;margin:-18px -18px 4px;padding:17px 18px;background:#fff;border-bottom:1px solid #e5e5e5;font-size:16px}
+.drawer-heading .btn{width:36px;height:36px;padding:0}
+body.settings-open .settings-backdrop{display:block}
+body.settings-open aside#settingsDrawer{transform:translateX(0)}
+body.settings-open{overflow:hidden}
+footer{display:none}
+@media(max-width:700px){header{top:8px;left:8px;right:8px;min-height:52px;padding:7px 9px;border-radius:15px}.brand{gap:7px}.brand h1{font-size:16px}.subtitle{display:none}.logo{width:34px;height:34px}.header-tools{gap:5px}.header-tools .pill{display:none}.clock-pill{padding:6px 8px;font-size:10px}.clock-pill small{display:none}.settings-toggle{font-size:10px;padding:8px 9px}.drawing-panel{top:70px;left:8px;width:min(360px,calc(100vw - 16px));padding:8px;gap:7px}.drawing-panel h3{width:auto}.drawing-panel .color-row{flex-wrap:wrap}.toolbar{bottom:8px;max-width:calc(100vw - 12px);padding:7px;gap:5px;border-radius:14px;flex-wrap:wrap}.toolbar .btn{flex:0 1 auto;padding:8px 9px;font-size:10px}.zoom-controls{width:auto;justify-content:center;margin:0}.zoom-controls .btn{flex:0;padding:7px 8px}.zoom-level{min-width:34px}.board-message{padding:24px 20px}}
+@media(max-width:420px){.header-tools .clock-pill{display:none}.drawing-panel{max-height:calc(100vh - 155px)}.toolbar{left:6px;right:6px;transform:none;width:auto}.toolbar #confettiBtn{display:none}.toolbar .btn{padding:8px 7px}}
+@media(prefers-reduced-motion:reduce){aside#settingsDrawer{transition:none}}
+
+
+/* Restore the original logo look and keep the classroom canvas as the main focus. */
+header .logo{background:linear-gradient(135deg,#786cff,#b2a9ff)!important;color:#fff!important;border-radius:14px!important;box-shadow:0 7px 18px #6657e833!important;font-size:24px!important}
+@media(max-width:700px){header .logo{width:36px!important;height:36px!important}}
+
+/* Welcome text keeps the same centered position used after pressing “مسح اللوحة”. */
+
+/* Left-side dark drawing tool dock */
+.drawing-panel{position:fixed!important;z-index:30!important;top:50%!important;left:10px!important;right:auto!important;transform:translateY(-50%)!important;width:68px!important;max-width:calc(100vw - 20px)!important;max-height:calc(100vh - 110px)!important;overflow:visible!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;padding:8px!important;background:#17191f!important;color:#f5f6f8!important;border:1px solid #343741!important;border-radius:18px!important;box-shadow:0 8px 28px #0005!important;backdrop-filter:blur(12px)!important}
+.drawing-panel h3,.drawing-panel p,.drawing-panel>.tiny{display:none!important}
+.drawing-panel .tools-grid{display:flex!important;flex-direction:column!important;gap:7px!important;width:100%!important}
+.drawing-panel .btn{min-width:0!important;width:100%!important;min-height:46px!important;padding:7px 4px!important;border-radius:12px!important;background:#292c34!important;color:#f5f6f8!important;border:1px solid #414550!important;font-size:22px!important;white-space:normal!important;box-shadow:none!important;transition:transform .18s cubic-bezier(.2,.8,.2,1),background .18s,border-color .18s,box-shadow .18s!important;animation:toolPop .28s ease both}
+.drawing-panel .btn.active{background:#f0f0f2!important;color:#17191f!important;border-color:#fff!important;box-shadow:0 0 0 2px #ffffff22,0 5px 13px #0005!important;transform:scale(1.04)}
+.drawing-panel .btn:hover{transform:translateY(-2px) scale(1.04)!important;background:#3b3f49!important}
+.drawing-panel .btn:active{transform:scale(.91)!important}
+@keyframes toolPop{from{opacity:0;transform:translateY(7px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}
+.btn{transition:transform .18s cubic-bezier(.2,.8,.2,1),filter .18s,box-shadow .18s!important}
+.btn:active{transform:scale(.95)!important}
+.btn:focus-visible{outline:2px solid #a9a0ff;outline-offset:2px}
+.drawing-panel .tool-settings{display:none!important;flex-direction:column!important;gap:8px!important;padding-top:8px!important;border-top:1px solid #414550!important}
+.drawing-panel.show-options{width:min(290px,calc(100vw - 20px))!important;max-height:calc(100vh - 110px)!important;overflow-y:auto!important}
+.drawing-panel.show-options .tool-settings.visible{display:flex!important}
+.drawing-panel.show-options .tool-label{display:block!important;color:#e2e5eb!important;font-size:11px!important;white-space:normal!important;margin:0 0 3px!important}
+.drawing-panel.show-options .color-row{display:flex!important;flex-wrap:wrap!important;gap:6px!important}
+.drawing-panel.show-options .color-row input{width:38px!important;height:34px!important;background:#292c34!important;border:1px solid #555b68!important}
+.drawing-panel.show-options .color-row .btn{width:auto!important;min-height:32px!important;padding:6px 9px!important;flex:1 0 auto!important}
+.drawing-panel.show-options .width-row{display:flex!important;width:100%!important;gap:8px!important}
+.drawing-panel.show-options .width-row input{width:100%!important;accent-color:#b8bac2!important}
+.drawing-panel.show-options .tiny{display:block!important;color:#b8bdc8!important;font-size:10px!important}
+@media(max-width:700px){.drawing-panel{top:50%!important;left:6px!important;width:58px!important;padding:6px!important;gap:6px!important}.drawing-panel .btn{min-height:43px!important;font-size:10px!important}.drawing-panel.show-options{width:min(270px,calc(100vw - 12px))!important}}
+
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="logo">✦</div><div><h1>لوحتي</h1><div class="subtitle">سبورة تفاعلية للتعلّم والتشجيع</div></div></div>
+ <div class="header-tools"><button class="btn soft settings-toggle" id="settingsToggle" aria-expanded="false" aria-controls="settingsDrawer">⚙️ الإعدادات</button><div class="clock-pill" aria-live="off"><span id="clockTime">--:--:--</span><small id="clockZone">التوقيت المحلي للجهاز</small></div><div class="pill">✦ وضع الفصل الدراسي</div></div>
+</header>
+<main>
+ <section class="board-wrap">
+  <div class="board-top"><h2>✨ السبورة البيضاء</h2><span class="hint">ارسم بإصبع واحد، واستخدم إصبعين للتكبير أو التصغير فقط.</span></div>
+  <section class="panel drawing-panel" id="drawingPanel">
+   <h3>🖌️ أدوات الرسم</h3><p>اختر الأداة واللون والسُمك. عند تشغيل وضع الرسم تختفي رسالة الترحيب من مساحة الرسم.</p>
+   <div class="tools-grid">
+    <button class="btn soft active" id="penBtn" title="قلم" aria-label="قلم">✏️</button>
+    <button class="btn soft" id="eraserBtn" title="ممحاة" aria-label="ممحاة">🧽</button>
+    <button class="btn soft" id="lineBtn" title="خط مستقيم" aria-label="خط مستقيم">／</button>
+    <button class="btn soft" id="rectBtn" title="مستطيل" aria-label="مستطيل">▱</button>
+    <button class="btn soft" id="circleBtn" title="دائرة" aria-label="دائرة">◯</button>
+   </div>
+   <div class="tool-settings" id="penSettings"><label class="tool-label" for="colorInput">لون القلم</label><div class="color-row"><input type="color" id="colorInput" value="#6657e8"><button class="btn soft" data-color="#20283b">أسود</button><button class="btn soft" data-color="#e84369">أحمر</button><button class="btn soft" data-color="#159d82">أخضر</button><button class="btn soft" data-color="#2778df">أزرق</button></div>
+   <label class="tool-label" for="widthInput">سُمك القلم: <span id="widthValue">4</span></label><div class="width-row"><input type="range" id="widthInput" min="1" max="30" value="4"></div></div>
+   <div class="tool-settings" id="eraserSettings"><label class="tool-label" for="eraserWidthInput">سُمك الممحاة: <span id="eraserWidthValue">16</span></label><div class="width-row"><input type="range" id="eraserWidthInput" min="4" max="60" value="16"></div></div>
+   <div class="tiny">اضغط على الأداة المحددة مرة أخرى لإظهار إعداداتها.</div>
+  </section>
+  <div class="whiteboard" id="board">
+   <canvas id="drawing"></canvas>
+   <div class="name-card" id="nameCard"><small>✨ حان دورك!</small><h3 id="pickedName">اسم الطالب</h3><p>أنت تستطيع! ⭐</p></div>
+  </div>
+  <div class="toolbar">
+   <button class="btn primary" id="pickBtn">🎲 اختيار اسم عشوائي</button>
+   <button class="btn celebrate" id="confettiBtn">🎉 تشجيع</button>
+   <button class="btn soft" id="clearBtn">🧹 مسح الرسومات</button>
+   <div class="zoom-controls"><button class="btn soft" id="zoomOut" aria-label="تصغير">−</button><span class="zoom-level" id="zoomLabel">100%</span><button class="btn soft" id="zoomIn" aria-label="تكبير">+</button><button class="btn soft" id="resetView">إعادة العرض</button></div>
+  </div>
+ </section>
+ <div class="settings-backdrop" id="settingsBackdrop"></div>
+ <aside id="settingsDrawer" aria-label="إعدادات المعلم">
+  <div class="drawer-heading"><strong>⚙️ إعدادات المعلم</strong><button class="btn soft" id="settingsClose" aria-label="إغلاق الإعدادات">✕</button></div>
+  <section class="panel">
+   <h3>📚 استيراد قائمة الطلاب</h3><p>استورد ملف Excel أو CSV. تُقرأ الأسماء من العمود الأول في الورقة الأولى.</p>
+   <div class="upload"><div class="fileicon">📄</div><strong>اختر ملف الفصل الحالي</strong><span>‎.xlsx · ‎.xls · ‎.csv</span><label class="btn soft" for="fileInput" id="fileLabel">اختيار ملف الفصل</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
+   <div class="status" id="fileStatus">اختر ملفًا جديدًا أو افتح فصلًا محفوظًا على هذا الجهاز.</div>
+   <div style="margin-top:12px"><strong style="font-size:13px">💾 الفصول المحفوظة على هذا الجهاز</strong><div id="savedClasses" class="saved-classes"><span class="tiny">لا توجد فصول محفوظة بعد.</span></div></div>
+   <div class="stats"><div class="stat"><b id="studentCount">0</b><span>عدد الطلاب</span></div><div class="stat"><b id="pickedCount">0</b><span>مرات الاختيار</span></div></div>
+   <div class="names" id="nameList"></div><div class="tiny">تُحفظ قوائم الأسماء في مساحة التخزين المحلية للمتصفح على هذا الجهاز، واضغط على مستطيل أي فصل محفوظ للتبديل إليه، أو استخدم زر الحذف. لا يتم رفع القوائم إلى خادم، ولن تنتقل تلقائيًا إلى جهاز أو متصفح آخر.</div>
+  </section>
+  <section class="panel">
+   <h3>➕ إضافة اسم يدويًا</h3><input id="manualName" type="text" placeholder="اكتب اسم الطالب هنا"><button class="btn soft" id="addNameBtn" style="width:100%">إضافة الاسم</button>
+  </section>
+  <section class="panel">
+   <h3>🎊 لحظة تشجيع!</h3><p>استخدم قصاصات الورق الملوّنة عند الإجابة الصحيحة أو عند بذل مجهود جميل.</p><div class="tools-grid"><button class="btn celebrate" id="smallBurst">🎉 احتفال صغير</button><button class="btn primary" id="bigBurst">🌈 احتفال كبير</button></div>
+  </section>
+ </aside>
+</main>
+<footer>لوحتي · بيئة صفية ممتعة ومشجّعة</footer>
+<script>
+(() => {
+ const $ = id => document.getElementById(id);
+ const settingsToggle=$('settingsToggle'), settingsClose=$('settingsClose'), settingsBackdrop=$('settingsBackdrop');
+ function setSettingsOpen(open){document.body.classList.toggle('settings-open',open);settingsToggle.setAttribute('aria-expanded',String(open));if(open){settingsClose.focus()}else{settingsToggle.focus()}}
+ settingsToggle.addEventListener('click',()=>setSettingsOpen(!document.body.classList.contains('settings-open')));
+ settingsClose.addEventListener('click',()=>setSettingsOpen(false));settingsBackdrop.addEventListener('click',()=>setSettingsOpen(false));
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('settings-open'))setSettingsOpen(false)});
+ let names=[],picked=0,tool='pen',drawing=false,last=null,activeClassId=null;
+ const STORAGE_KEY='brightboard_saved_classes_v1'; let savedClasses=loadSavedClasses();
+ function loadSavedClasses(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){return []}}
+ function persistClasses(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(savedClasses))}catch(e){$('fileStatus').textContent='تعذّر الحفظ في المتصفح؛ قد تكون مساحة التخزين ممتلئة أو محظورة.'}}
+ function safeId(){return 'class_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
+ function saveActiveClass(){if(!activeClassId)return;const c=savedClasses.find(x=>x.id===activeClassId);if(c){c.names=[...names];c.picked=picked;c.updated=Date.now();persistClasses();renderSavedClasses()}}
+ function renderSavedClasses(){const root=$('savedClasses');root.innerHTML='';if(!savedClasses.length){const m=document.createElement('span');m.className='tiny';m.textContent='لا توجد فصول محفوظة بعد.';root.appendChild(m);return}savedClasses.forEach(c=>{const row=document.createElement('div');row.className='saved-class'+(c.id===activeClassId?' active-class':'');row.setAttribute('role','button');row.setAttribute('tabindex','0');row.setAttribute('aria-label','اختيار الفصل '+c.name);row.title='اضغط هنا لفتح هذا الفصل';row.addEventListener('click',()=>activateClass(c.id));row.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activateClass(c.id)}});const title=document.createElement('span');title.className='saved-name';title.textContent=(c.id===activeClassId?'✓ ':'')+c.name+' · '+c.names.length+' طالب';const del=document.createElement('button');del.className='btn soft';del.textContent='حذف';del.setAttribute('aria-label','حذف '+c.name);del.addEventListener('click',e=>{e.stopPropagation();if(!confirm('حذف الفصل المحفوظ «'+c.name+'» من هذا الجهاز؟'))return;savedClasses=savedClasses.filter(x=>x.id!==c.id);if(activeClassId===c.id){activeClassId=null;names=[];picked=0;renderNames();$('fileLabel').textContent='اختيار ملف الفصل';$('fileStatus').textContent='تم حذف الفصل المحفوظ من هذا الجهاز.'}persistClasses();renderSavedClasses()});row.append(title,del);root.appendChild(row)})}
+ function activateClass(id){const c=savedClasses.find(x=>x.id===id);if(!c)return;activeClassId=c.id;names=[...c.names];picked=c.picked||0;$('nameCard').style.display='none';$('fileLabel').textContent='تغيير / استيراد ملف فصل';renderNames();renderSavedClasses();$('fileStatus').textContent='تم فتح الفصل المحفوظ: '+c.name+'، ويمكنك تغييره أو حذفه لاحقًا.'}
+ let scale=1, offsetX=0, offsetY=0;
+ const canvas=$('drawing'),ctx=canvas.getContext('2d'),board=$('board');
+ const strokes=[]; let currentStroke=null;
+ const colors=['#ff5d8f','#ffbe0b','#3a86ff','#06d6a0','#8338ec','#fb5607','#00b4d8'];
+ function resizeCanvas(){const r=board.getBoundingClientRect(),dpr=window.devicePixelRatio||1;canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);renderCanvas()}
+ function renderCanvas(){
+  const dpr=window.devicePixelRatio||1;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.save();ctx.scale(dpr,dpr);ctx.translate(offsetX,offsetY);ctx.scale(scale,scale);
+  const r=board.getBoundingClientRect();const left=-offsetX/scale,top=-offsetY/scale,right=left+r.width/scale,bottom=top+r.height/scale;
+  ctx.fillStyle='#d0d0d0';for(let x=Math.floor(left/25)*25;x<right;x+=25)for(let y=Math.floor(top/25)*25;y<bottom;y+=25){ctx.beginPath();ctx.arc(x,y,1.05,0,Math.PI*2);ctx.fill()}
+  for(const s of strokes)drawStroke(s);if(currentStroke)drawStroke(currentStroke);ctx.restore();
+ }
+ function drawStroke(s){if(!s.points.length)return;ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=s.width;ctx.strokeStyle=s.tool==='eraser'?'#ffffff':s.color;ctx.globalCompositeOperation='source-over';const a=s.points[0],b=s.points[s.points.length-1];ctx.beginPath();if(s.tool==='line'){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)}else if(s.tool==='rect'){ctx.rect(a.x,a.y,b.x-a.x,b.y-a.y)}else if(s.tool==='circle'){const rx=Math.abs(b.x-a.x)/2,ry=Math.abs(b.y-a.y)/2;ctx.ellipse((a.x+b.x)/2,(a.y+b.y)/2,Math.max(rx,.5),Math.max(ry,.5),0,0,Math.PI*2)}else{ctx.moveTo(a.x,a.y);for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);if(s.points.length===1)ctx.lineTo(a.x+.01,a.y+.01)}ctx.stroke();ctx.restore()}
+ window.addEventListener('resize',resizeCanvas);resizeCanvas();
+ function renderNames(){ $('studentCount').textContent=names.length;$('pickedCount').textContent=picked;$('nameList').innerHTML='';names.slice(0,80).forEach(n=>{const s=document.createElement('span');s.className='chip';s.textContent=n;$('nameList').appendChild(s)});if(names.length>80){const s=document.createElement('span');s.className='chip';s.textContent=`+${names.length-80} المزيد`;$('nameList').appendChild(s)} }
+ function addName(n){n=String(n||'').trim();if(n&&!names.some(x=>x.toLowerCase()===n.toLowerCase())){names.push(n);renderNames();saveActiveClass();return true}return false}
+ $('fileInput').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{let rows=[];if(file.name.toLowerCase().endsWith('.csv')){const txt=await file.text();rows=txt.split(/\r?\n/).map(line=>line.split(','))}else{if(!window.XLSX){$('fileStatus').textContent='تعذّر تحميل قارئ Excel. جرّب استيراد ملف CSV.';return}const data=await file.arrayBuffer(),wb=XLSX.read(data,{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}let extracted=rows.map(r=>r&&r.length?String(r[0]??'').trim():'').filter(Boolean);if(extracted.length&&/^(name|student name|student|names|الاسم|اسم الطالب|الأسماء)$/i.test(extracted[0]))extracted.shift();const unique=[];extracted.forEach(n=>{if(!unique.some(x=>x.toLowerCase()===n.toLowerCase()))unique.push(n)});if(!unique.length){$('fileStatus').textContent='لم يتم العثور على أسماء في العمود الأول؛ لم تتغير القائمة الحالية.';return}names=unique;picked=0;activeClassId=safeId();savedClasses.push({id:activeClassId,name:file.name,names:[...names],picked:0,updated:Date.now()});persistClasses();$('nameCard').style.display='none';renderNames();renderSavedClasses();$('fileStatus').textContent=`تم حفظ الفصل «${file.name}» على هذا الجهاز، ويحتوي على ${names.length} اسمًا. يمكنك فتحه لاحقًا حتى بعد إغلاق المنصة.`; $('fileLabel').textContent='تغيير / استيراد ملف فصل'}catch(err){$('fileStatus').textContent='تعذّرت قراءة الملف. جرّب حفظه بصيغة XLSX أو CSV.'}finally{e.target.value=''}});
+ $('addNameBtn').addEventListener('click',()=>{const i=$('manualName');if(addName(i.value)){i.value='';$('fileStatus').textContent='تمت إضافة الاسم إلى القائمة.'}else $('fileStatus').textContent='اكتب اسمًا جديدًا أولًا.'});$('manualName').addEventListener('keydown',e=>{if(e.key==='Enter')$('addNameBtn').click()});
+ $('pickBtn').addEventListener('click',()=>{if(!names.length){$('fileStatus').textContent='استورد قائمة الطلاب أو أضف اسمًا أولًا.';return}const n=names[Math.floor(Math.random()*names.length)];$('pickedName').textContent=n;$('nameCard').style.display='block';picked++;renderNames();saveActiveClass();$('nameCard').animate([{transform:'translate(-50%,-50%) scale(.82)',opacity:.4},{transform:'translate(-50%,-50%) scale(1.04)',opacity:1},{transform:'translate(-50%,-50%) scale(1)',opacity:1}],{duration:380,easing:'ease-out'})});
+ function burst(amount){for(let i=0;i<amount;i++){const el=document.createElement('i');el.className='confetti';el.style.left=(Math.random()*100)+'vw';el.style.background=colors[Math.floor(Math.random()*colors.length)];el.style.width=(6+Math.random()*8)+'px';el.style.height=(9+Math.random()*12)+'px';el.style.borderRadius=Math.random()>.5?'2px':'50%';el.style.setProperty('--drift',((Math.random()-.5)*260)+'px');el.style.animationDuration=(2.2+Math.random()*2.5)+'s';el.style.animationDelay=(Math.random()*.35)+'s';document.body.appendChild(el);setTimeout(()=>el.remove(),5200)}}
+ $('confettiBtn').addEventListener('click',()=>burst(110));$('smallBurst').addEventListener('click',()=>burst(65));$('bigBurst').addEventListener('click',()=>burst(220));
+ function updateCursor(){canvas.style.cursor=tool==='eraser'?'cell':(tool==='text'?'text':'crosshair')}
+ function closeToolSettings(){const panel=$('drawingPanel');panel.classList.remove('show-options');$('penSettings').classList.remove('visible');$('eraserSettings').classList.remove('visible')}
+ function showToolSettings(which){const panel=$('drawingPanel');panel.classList.add('show-options');const drawingTool=which!=='eraser';$('penSettings').classList.toggle('visible',drawingTool);$('eraserSettings').classList.toggle('visible',which==='eraser');const name=({pen:'القلم',line:'الخط',rect:'المستطيل',circle:'الدائرة'})[which]||'القلم';$('penSettings').querySelector('[for="colorInput"]').textContent='لون '+name;$('penSettings').querySelector('[for="widthInput"]').childNodes[0].textContent='سُمك '+name+': ';}
+ function selectTool(which){const panel=$('drawingPanel'),settings=which==='eraser'?'eraserSettings':'penSettings',button=$(which+'Btn');if(tool===which){if(panel.classList.contains('show-options') && $(settings).classList.contains('visible'))closeToolSettings();else showToolSettings(which)}else{tool=which;['pen','eraser','line','rect','circle'].forEach(t=>$(t+'Btn').classList.toggle('active',t===which));closeToolSettings()}updateCursor()}
+ $('penBtn').addEventListener('click',()=>selectTool('pen'));$('eraserBtn').addEventListener('click',()=>selectTool('eraser'));$('lineBtn').addEventListener('click',()=>selectTool('line'));$('rectBtn').addEventListener('click',()=>selectTool('rect'));$('circleBtn').addEventListener('click',()=>selectTool('circle'));
+ $('colorInput').addEventListener('input',e=>{ctx.strokeStyle=e.target.value});document.querySelectorAll('[data-color]').forEach(b=>b.addEventListener('click',()=>{$('colorInput').value=b.dataset.color;ctx.strokeStyle=b.dataset.color;showToolSettings(tool);updateCursor()}));
+ $('widthInput').addEventListener('input',e=>$('widthValue').textContent=e.target.value);$('eraserWidthInput').addEventListener('input',e=>$('eraserWidthValue').textContent=e.target.value);
+ function point(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left-offsetX)/scale,y:(e.clientY-r.top-offsetY)/scale}}
+ // One pointer draws; two pointers pinch-zoom only, without panning.
+ const activePointers=new Map();let gesture=null;
+ function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+ function midpoint(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+ function zoomAt(f,clientX,clientY){const r=board.getBoundingClientRect(),cx=clientX-r.left,cy=clientY-r.top;const next=Math.max(.25,Math.min(4,scale*f));if(next===scale)return;offsetX=cx-(cx-offsetX)*(next/scale);offsetY=cy-(cy-offsetY)*(next/scale);scale=next;$('zoomLabel').textContent=Math.round(scale*100)+'%';renderCanvas()}
+ canvas.addEventListener('pointerdown',e=>{
+  canvas.setPointerCapture(e.pointerId);activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY,pointerType:e.pointerType});
+  if(activePointers.size>=2){if(currentStroke){strokes.push(currentStroke);currentStroke=null}drawing=false;last=null;const pts=[...activePointers.values()];gesture={distance:distance(pts[0],pts[1]),mid:midpoint(pts[0],pts[1]),scale};canvas.style.cursor='grabbing';return}
+  last={x:e.clientX,y:e.clientY};
+  closeToolSettings();$('nameCard').style.display='none';drawing=true;const width=tool==='eraser'?Number($('eraserWidthInput').value):Number($('widthInput').value);currentStroke={tool,color:$('colorInput').value,width:width/scale,points:[point(e)]};renderCanvas()
+ });
+ canvas.addEventListener('pointermove',e=>{
+  if(!activePointers.has(e.pointerId))return;activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY,pointerType:e.pointerType});
+  if(activePointers.size>=2){const pts=[...activePointers.values()];const dist=distance(pts[0],pts[1]);if(gesture){const next=Math.max(.25,Math.min(4,gesture.scale*(gesture.distance?Math.pow(dist/gesture.distance,0.18):1)));const r=board.getBoundingClientRect(),cx=gesture.mid.x-r.left,cy=gesture.mid.y-r.top;const contentX=(cx-offsetX)/gesture.scale,contentY=(cy-offsetY)/gesture.scale;scale=next;offsetX=cx-contentX*scale;offsetY=cy-contentY*scale;$('zoomLabel').textContent=Math.round(scale*100)+'%';renderCanvas()}return}
+  if(!last)return;if(drawing&&currentStroke){currentStroke.points.push(point(e));last={x:e.clientX,y:e.clientY};renderCanvas()}
+ });
+ function stop(e){if(e&&activePointers.has(e.pointerId))activePointers.delete(e.pointerId);if(currentStroke){strokes.push(currentStroke);currentStroke=null}drawing=false;last=null;if(activePointers.size<2)gesture=null;updateCursor()}
+ canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);canvas.addEventListener('lostpointercapture',stop);
+ function zoom(f){const r=board.getBoundingClientRect();zoomAt(f,r.left+r.width/2,r.top+r.height/2)}
+ $('zoomIn').addEventListener('click',()=>zoom(1.2));$('zoomOut').addEventListener('click',()=>zoom(1/1.2));$('resetView').addEventListener('click',()=>{scale=1;offsetX=0;offsetY=0;$('zoomLabel').textContent='100%';renderCanvas()});
+ $('clearBtn').addEventListener('click',()=>{strokes.length=0;currentStroke=null;renderCanvas();$('nameCard').style.display='none';});
+ board.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();zoom(e.deltaY<0?1.025:1/1.025)}},{passive:false});
+ function updateClock(){const now=new Date();$('clockTime').textContent=new Intl.DateTimeFormat('ar-SA',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}).format(now);const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'التوقيت المحلي';$('clockZone').textContent=zone.replaceAll('_',' ')}
+ updateClock();setInterval(updateClock,1000);
+ renderNames();
+ renderSavedClasses();
+ if(savedClasses.length){const latest=[...savedClasses].sort((a,b)=>(b.updated||0)-(a.updated||0))[0];if(latest)activateClass(latest.id)}
+})();
+</script>
+</body></html>
+
+/* Final polish: clearer welcome prompt, and a refined pressed/active button state. */
+.board-message{background:transparent!important;backdrop-filter:none!important;gap:8px;padding:24px;}
+.board-message .spark{display:grid;place-items:center;width:64px;height:64px;margin:0 0 5px;border-radius:22px;background:linear-gradient(135deg,#f0edff,#fff0f5);border:1px solid #e8e1ff;box-shadow:0 8px 24px #6657e81a;font-size:34px;}
+.board-message strong{display:block;color:#292344;font-size:clamp(23px,3vw,34px);font-weight:850;letter-spacing:0;}
+.board-message span{display:block;max-width:min(460px,88vw);margin-top:0;padding:12px 18px;border:1px solid #ece8f7;border-radius:15px;background:#ffffffed;color:#625d70;font-size:13px;line-height:1.9;box-shadow:0 8px 28px #2420440c;}
+.btn{position:relative;isolation:isolate;outline:none;-webkit-tap-highlight-color:transparent;}
+.btn:active{transform:translateY(1px) scale(.97)!important;filter:brightness(.97);box-shadow:inset 0 2px 5px #00000014!important;}
+.btn.active,.btn[aria-pressed="true"]{background:linear-gradient(135deg,#eeeaff,#f8f5ff)!important;color:#5743c5!important;border:1px solid #cfc5ff!important;box-shadow:inset 0 0 0 1px #ffffff,0 3px 9px #6657e81c!important;border-radius:12px!important;}
+.settings-toggle{background:#fff!important;border:1px solid #e5e0f8!important;color:#4f43a9!important;border-radius:12px!important;box-shadow:0 3px 10px #6657e812!important;}
+.settings-toggle:active{background:#f0edff!important;}
+@media(max-width:560px){.board-message{padding:18px 14px}.board-message .spark{width:54px;height:54px;border-radius:18px;font-size:29px}.board-message span{font-size:12px;padding:10px 13px;line-height:1.8}}
+
+
+/* User request: keep the welcome message hidden, including after clearing the board. */
+#welcome.board-message{display:none!important;}
